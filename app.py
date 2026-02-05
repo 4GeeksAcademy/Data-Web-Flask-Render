@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import kagglehub
-from kagglehub import KaggleDatasetAdapter
 
 st.set_page_config(
     page_title="Dashboard Videojuegos",
@@ -14,21 +12,20 @@ st.title("🎮 Dashboard de Videojuegos Populares")
 
 @st.cache_data
 def load_data():
-    df = kagglehub.load_dataset(
-        KaggleDatasetAdapter.PANDAS,
-        "matheusfonsecachaves/popular-video-games",
-        "popular_video_games.csv"  # 👈 FIX CLAVE
-    )
+    df = pd.read_csv("backloggd_games.csv")
     return df
 
 df = load_data()
 
 df = df.dropna(how="all")
 
+df["Release_Date"] = pd.to_datetime(df["Release_Date"], errors="coerce")
+df["year"] = df["Release_Date"].dt.year
+
 st.sidebar.header("Filtros")
 
 if "year" in df.columns:
-    df["year"] = pd.to_numeric(df["year"], errors="coerce")
+    df = df.dropna(subset=["year"])
 
     min_year = int(df["year"].min())
     max_year = int(df["year"].max())
@@ -40,32 +37,55 @@ if "year" in df.columns:
         (min_year, max_year)
     )
 
-    df = df[(df["year"] >= year_range[0]) &
-            (df["year"] <= year_range[1])]
+    df = df[
+        (df["year"] >= year_range[0]) &
+        (df["year"] <= year_range[1])
+    ]
 
-if "genre" in df.columns:
-    genres = st.sidebar.multiselect(
-        "Selecciona género",
-        options=sorted(df["genre"].dropna().unique()),
-        default=sorted(df["genre"].dropna().unique())[:5]
+if "Genres" in df.columns:
+    df["Genres"] = df["Genres"].fillna("")
+    all_genres = sorted(
+        set(
+            genre.strip()
+            for sublist in df["Genres"].str.split(",")
+            for genre in sublist
+            if genre
+        )
     )
 
-    if genres:
-        df = df[df["genre"].isin(genres)]
+    selected_genres = st.sidebar.multiselect(
+        "Selecciona género",
+        options=all_genres,
+        default=all_genres[:5]
+    )
+
+    if selected_genres:
+        df = df[
+            df["Genres"].apply(
+                lambda x: any(g in x for g in selected_genres)
+            )
+        ]
 
 st.subheader("🎯 Juegos por género")
 
-if "genre" in df.columns:
+if "Genres" in df.columns:
+    exploded = df.assign(
+        Genres=df["Genres"].str.split(",")
+    ).explode("Genres")
+
+    exploded["Genres"] = exploded["Genres"].str.strip()
+
     genre_count = (
-        df["genre"]
+        exploded["Genres"]
         .value_counts()
         .reset_index()
     )
-    genre_count.columns = ["genre", "count"]
+
+    genre_count.columns = ["Genres", "count"]
 
     fig1 = px.bar(
         genre_count.head(10),
-        x="genre",
+        x="Genres",
         y="count",
         title="Top 10 géneros más populares"
     )
@@ -94,27 +114,21 @@ if "year" in df.columns:
 
 st.subheader("⭐ Rating vs Popularidad")
 
-rating_col = None
-popularity_col = None
+if "Rating" in df.columns and "Plays" in df.columns:
 
-for col in df.columns:
-    if "rating" in col.lower():
-        rating_col = col
-    if "popularity" in col.lower() or "score" in col.lower():
-        popularity_col = col
+    df["Rating"] = pd.to_numeric(df["Rating"], errors="coerce")
+    df["Plays"] = pd.to_numeric(df["Plays"], errors="coerce")
 
-if rating_col and popularity_col:
     fig3 = px.scatter(
         df,
-        x=rating_col,
-        y=popularity_col,
-        title="Relación entre rating y popularidad",
-        opacity=0.6
+        x="Rating",
+        y="Plays",
+        title="Relación entre Rating y Popularidad (Plays)",
+        opacity=0.6,
+        hover_data=["Title"]
     )
 
     st.plotly_chart(fig3, use_container_width=True)
-else:
-    st.info("No se encontraron columnas de rating y popularidad en el dataset.")
 
 st.subheader("📋 Datos del dataset")
 st.dataframe(df.head(50))
