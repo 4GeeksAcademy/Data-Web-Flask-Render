@@ -1,5 +1,5 @@
 streamlit
 pandas
-plotly
-kagglehub
+numpy
 scikit-learn
+plotly

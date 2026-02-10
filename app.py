@@ -20,7 +20,7 @@ if isinstance(x, str):
 x = x.replace(",", "").strip()
 try:
 if x.endswith("K"):
-return float(x[:-1]) * 1_000
+return float(x[:-1]) * 1000
 elif x.endswith("M"):
 return float(x[:-1]) * 1_000_000
 else:
@@ -31,23 +31,14 @@ return x
 
 @st.cache_data
 def load_data():
-try:
 df = pd.read_csv("backloggd_games.csv", low_memory=False)
 return df
-except FileNotFoundError:
-st.error("No se encontró backloggd_games.csv en el repositorio")
-st.stop()
 
 @st.cache_resource
 def load_model():
-try:
 with open("model.pkl", "rb") as f:
 model, scaler, model_name = pickle.load(f)
 return model, scaler, model_name
-except Exception as e:
-st.error("Error cargando el modelo ML")
-st.error(str(e))
-st.stop()
 
 df = load_data()
 df = df.dropna(how="all")
@@ -59,10 +50,11 @@ st.sidebar.header("Filtros")
 
 if "year" in df.columns:
 df = df.dropna(subset=["year"])
+
+```
 min_year = int(df["year"].min())
 max_year = int(df["year"].max())
 
-```
 year_range = st.sidebar.slider(
     "Selecciona rango de años",
     min_year,
