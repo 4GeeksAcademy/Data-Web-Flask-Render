@@ -35,73 +35,9 @@ def load_data():
 
 @st.cache_resource
 def load_model():
-
-    try:
-        with open("model.pkl", "rb") as f:
-            model, scaler, model_name = pickle.load(f)
-        return model, scaler, model_name
-
-    except Exception as e:
-
-        st.warning("⚠️ Reentrenando modelo automáticamente...")
-
-        from sklearn.model_selection import train_test_split
-        from sklearn.preprocessing import StandardScaler
-        from sklearn.linear_model import LinearRegression
-        from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-
-        df = load_data()
-
-        for col in ["Playing", "Wishlist", "Plays", "Reviews"]:
-            df[col] = df[col].apply(convert_numbers)
-
-        df = df.dropna(subset=["Playing", "Wishlist", "Plays", "Reviews"])
-
-        df["engagement"] = df["Playing"] / (df["Plays"] + 1)
-
-        X = df[["Playing", "Wishlist", "Plays", "engagement"]]
-        y = df["Reviews"]
-
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
-        )
-
-        scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train)
-        X_test_scaled = scaler.transform(X_test)
-
-        models = {
-            "Linear Regression": LinearRegression(),
-            "Random Forest": RandomForestRegressor(n_estimators=100),
-            "Gradient Boosting": GradientBoostingRegressor()
-        }
-
-        best_model = None
-        best_score = -1
-        best_name = ""
-
-        from sklearn.metrics import r2_score
-
-        for name, model in models.items():
-
-            if name == "Linear Regression":
-                model.fit(X_train_scaled, y_train)
-                preds = model.predict(X_test_scaled)
-            else:
-                model.fit(X_train, y_train)
-                preds = model.predict(X_test)
-
-            score = r2_score(y_test, preds)
-
-            if score > best_score:
-                best_score = score
-                best_model = model
-                best_name = name
-
-        with open("model.pkl", "wb") as f:
-            pickle.dump((best_model, scaler, best_name), f)
-
-        return best_model, scaler, best_name
+    with open("model.pkl", "rb") as f:
+        model, scaler, model_name = pickle.load(f)
+    return model, scaler, model_name
 
 df = load_data()
 df = df.dropna(how="all")
