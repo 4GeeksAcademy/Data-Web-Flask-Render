@@ -8,6 +8,6 @@ Source: [https://www.kaggle.com/datasets/matheusfonsecachaves/popular-video-game
 The dataset is used for educational and visualization purposes.
 
 
-And here the streamlit web app!
+And here the Render web app!
 
-https://data-web-fxe8rs9xzvn7qb5xtfrmbq.streamlit.app/
+https://data-web-flask-render.onrender.com
